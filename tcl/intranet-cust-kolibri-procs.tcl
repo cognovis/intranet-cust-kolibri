@@ -61,7 +61,7 @@ ad_proc -public intranet_kolibri_send_provider_bills {
     set bill_type_ids [im_sub_categories 3704]
     set bill_ids [db_list provider_bills "select cost_id from im_costs where effective_date >= to_date(:start_date,'YYYY-MM-DD') and cost_type_id in ([template::util::tcl_to_sql_list $bill_type_ids])"] 
     foreach invoice_id $bill_ids {
-	im_invoice_send_invoice_mail -from_addr ts@kolibri-kommunikation.com -cc_addr st@kolibri-kommunikation.com -invoice_id $invoice_id
+        im_invoice_send_invoice_mail -from_addr ts@kolibri-kommunikation.com -cc_addr st@kolibri-kommunikation.com -invoice_id $invoice_id
     }
 }
 
@@ -76,15 +76,15 @@ ad_proc -public intranet_kolibri_generate_provider_bills {
     set po_type_ids [im_sub_categories [im_cost_type_po]]
     set po_ids [db_list purchase_orders "select cost_id from im_costs where cost_status_id = :cost_status_id and effective_date <= to_date(:end_date,'YYYY-MM-DD') and cost_type_id in ([template::util::tcl_to_sql_list $po_type_ids]) and effective_date >= to_date(:start_date,'YYYY-MM-DD')"]
     foreach cost_id $po_ids {
-	set invoice_id [im_invoice_copy_new -source_invoice_ids $cost_id -target_cost_type_id 3704]
+        set invoice_id [im_invoice_copy_new -source_invoice_ids $cost_id -target_cost_type_id 3704]
 	
-	# Update the purchase order to status paid
-	db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_paid] where cost_id = $cost_id"
+        # Update the purchase order to status paid
+        db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_paid] where cost_id = $cost_id"
 
-	im_invoice_send_invoice_mail -from_addr ts@kolibri-kommunikation.com -cc_addr st@kolibri-kommunikation.com -invoice_id $invoice_id
+        im_invoice_send_invoice_mail -from_addr ts@kolibri-kommunikation.com -cc_addr st@kolibri-kommunikation.com -invoice_id $invoice_id
 	
-	# Update the provider bill to status outstanding
-	db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_outstanding] where cost_id = $invoice_id"	
+        # Update the provider bill to status outstanding
+        db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_outstanding] where cost_id = $invoice_id"	
     }
 }
 
@@ -99,29 +99,31 @@ ad_proc -public -callback im_project_after_update -impl kolibri_purchase_order_s
 } {
     set closed_ids [im_sub_categories 81]
     if {[lsearch $closed_ids $status_id]>-1} {
-	# find the purchase order for the project and update them
-	set cost_types [im_sub_categories [im_cost_type_po]]
-	set purchase_order_ids [db_list purchase_orders "select distinct cost_id from im_costs c, acs_rels ar
+        #  find the purchase order for the project and update them
+        set cost_types [im_sub_categories [im_cost_type_po]]
+        set purchase_order_ids [db_list purchase_orders "select distinct cost_id from im_costs c, acs_rels ar
               where c.cost_id = ar.object_id_two and ar.object_id_one = :object_id
               and cost_type_id in ([template::util::tcl_to_sql_list $cost_types]) and cost_status_id = 3802"]
-	foreach cost_id $purchase_order_ids {
-	    # Double click protection or against the same cost_id
-	    # twice in the list.
-	    set cost_status_id [db_string cost_status_id "select cost_status_id from im_costs where cost_id = :cost_id" -default ""]
-	    if {3802 == $cost_status_id} {
-		# Check if we have a provider bill attached to it
-		# Add this as a potential later change
-		set invoice_id [im_invoice_copy_new -source_invoice_ids $cost_id -target_cost_type_id 3704]
+
+        foreach cost_id $purchase_order_ids {
+	        # Double click protection or against the same cost_id
+            # twice in the list. Therefore check the current cost_status_id if
+            # it is not marked as paid
+            set cost_status_id [db_string cost_status_id "select cost_status_id from im_costs where cost_id = :cost_id" -default ""]
+            if {3802 == $cost_status_id} {
+                # Check if we have a provider bill attached to it
+                # Add this as a potential later change
+                set invoice_id [im_invoice_copy_new -source_invoice_ids $cost_id -target_cost_type_id 3704]
 		
-		# Update the purchase order to status paid
-		db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_paid] where cost_id = $cost_id"
+                # Update the purchase order to status paid
+                db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_paid] where cost_id = $cost_id"
 		
-		im_invoice_send_invoice_mail -from_addr ts@kolibri-kommunikation.com -cc_addr st@kolibri-kommunikation.com -invoice_id $invoice_id
+                im_invoice_send_invoice_mail -from_addr ts@kolibri-kommunikation.com -cc_addr st@kolibri-kommunikation.com -invoice_id $invoice_id
 		
-		# Update the provider bill to status outstanding
-		db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_outstanding] where cost_id = $invoice_id"	
-	    }
-	}
+                # Update the provider bill to status outstanding
+                db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_outstanding] where cost_id = $invoice_id"	
+            }
+        }
     }
 
    # Update the modification date
@@ -138,19 +140,19 @@ ad_proc -public -callback im_project_after_update -impl kolibri_update_cost_cent
 } {
     # get the type
     if {$type_id eq ""} {
-	set type_id [db_string type "select project_type_id from im_projects where project_id = :object_id"]
+	    set type_id [db_string type "select project_type_id from im_projects where project_id = :object_id"]
     }
     
     switch $type_id {
-	10000014 { set cost_center_id 140731 }
-	10000011 { set cost_center_id 140733 }
-	10000099 { set cost_center_id 140737 }
-	10000097 { set cost_center_id 140725 }
-	10000010 { set cost_center_id 140727 }
-	10000124 { set cost_center_id 140723 }
-	86 { set cost_center_id 140725 }
-	10000007 { set cost_center_id 12388 }
-	default { set cost_center_id 140729 }
+	    10000014 { set cost_center_id 140731 }
+        10000011 { set cost_center_id 140733 }
+        10000099 { set cost_center_id 140737 }
+        10000097 { set cost_center_id 140725 }
+        10000010 { set cost_center_id 140727 }
+        10000124 { set cost_center_id 140723 }
+        86 { set cost_center_id 140725 }
+        10000007 { set cost_center_id 12388 }
+        default { set cost_center_id 140729 }
     }
     
     # Update the cost center
@@ -166,19 +168,19 @@ ad_proc -public -callback im_project_after_create -impl kolibri_update_cost_cent
 } {
     # get the type
     if {$type_id eq ""} {
-	set type_id [db_string type "select project_type_id from im_projects where project_id = :object_id"]
+	    set type_id [db_string type "select project_type_id from im_projects where project_id = :object_id"]
     }
     
     switch $type_id {
-	10000014 { set cost_center_id 140731 }
-	10000011 { set cost_center_id 140733 }
-	10000099 { set cost_center_id 140737 }
-	10000097 { set cost_center_id 140725 }
-	10000010 { set cost_center_id 140727 }
-	10000124 { set cost_center_id 140723 }
-	86 { set cost_center_id 140725 }
-	10000007 { set cost_center_id 12388 }
-	default { set cost_center_id 140729 }
+	    10000014 { set cost_center_id 140731 }
+        10000011 { set cost_center_id 140733 }
+        10000099 { set cost_center_id 140737 }
+        10000097 { set cost_center_id 140725 }
+        10000010 { set cost_center_id 140727 }
+        10000124 { set cost_center_id 140723 }
+        86 { set cost_center_id 140725 }
+        10000007 { set cost_center_id 12388 }
+        default { set cost_center_id 140729 }
     }
     
     # Update the cost center
@@ -463,5 +465,30 @@ ad_proc -public -callback im_invoice_after_update -impl 00_kolibri_update_cost_c
 
     # Update the modification date
     db_dml update "update acs_objects set last_modified = now() where object_id = :object_id"
+}
+
+ad_proc -public -callback im_project_on_submit -impl aaa_kolibri_check_for_logged_hours {
+    {-object_id:required}
+    {-form_id:required}
+
+} {
+    Check if the project has logged hours, otherwise do not allow to close the project
+} {
+
+    set status_id [template::element::get_value $form_id project_status_id]
+    upvar error_field error_field
+    upvar error_message error_message
+    
+    set closed_ids [im_sub_categories 81]
+    if {[lsearch $closed_ids $status_id]>-1} {
+        # Check that we have logged hours
+        set logged_hours_p [db_string logged_hours "select 1 from im_hours where project_id = :object_id" -default 0]
+
+        ns_log Notice "Logger. $logged_hours_p"
+        if {!$logged_hours_p} {
+            set error_field "project_status_id"
+            set error_message "[_ intranet-cust-kolibri.lt_Your_need_logged_hours_for_close]"
+        }   
+    }
 }
 

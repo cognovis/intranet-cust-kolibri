@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<message_catalog package_key="intranet-cust-kolibri" locale="de_DE" charset="ISO-8859-1">
+
+  <msg key="Bank_Account_Nr">Kontonr.</msg>
+  <msg key="Bank_Name">Bankname</msg>
+  <msg key="Bank_Routing_Nr">BLZ</msg>
+  <msg key="bic">BIC/Swift</msg>
+  <msg key="lt_Your_need_logged_hours_for_close">You need logged hours to close a project</msg>
+  <msg key="paypal_email">Paypal E-Mail</msg>
+  <msg key="skrill_email">Skrill E-Mail</msg>
+</message_catalog>
