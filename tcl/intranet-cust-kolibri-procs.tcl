@@ -81,7 +81,8 @@ ad_proc -public intranet_kolibri_generate_provider_bills {
 	# Update the purchase order to status paid
 	db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_paid] where cost_id = $cost_id"
 
-	im_invoice_send_invoice_mail -from_addr ts@kolibri-kommunikation.com -cc_addr st@kolibri-kommunikation.com -invoice_id $invoice_id
+	set cc_addr [parameter::get_from_package_key -package_key "intranet-cust-kolibri" -parameter "ProviderBillCC"]
+	im_invoice_send_invoice_mail -from_addr ts@kolibri-kommunikation.com -cc_addr $cc_addr -invoice_id $invoice_id
 	
 	# Update the provider bill to status outstanding
 	db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_outstanding] where cost_id = $invoice_id"	
@@ -116,8 +117,9 @@ ad_proc -public -callback im_project_after_update -impl kolibri_purchase_order_s
 		# Update the purchase order to status paid
 		db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_paid] where cost_id = $cost_id"
 		
-		im_invoice_send_invoice_mail -from_addr ts@kolibri-kommunikation.com -cc_addr st@kolibri-kommunikation.com -invoice_id $invoice_id
-		
+		set cc_addr [parameter::get_from_package_key -package_key "intranet-cust-kolibri" -parameter "ProviderBillCC"]
+		im_invoice_send_invoice_mail -from_addr ts@kolibri-kommunikation.com -cc_addr $cc_addr -invoice_id $invoice_id
+
 		# Update the provider bill to status outstanding
 		db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_outstanding] where cost_id = $invoice_id"	
 	    }

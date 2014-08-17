@@ -9,16 +9,16 @@
     <implements-subsite-p>f</implements-subsite-p>
     <inherit-templates-p>f</inherit-templates-p>
     
-    <version name="4.0.3.0.0" url="http://openacs.org/repository/download/apm/intranet-cust-kolibri-4.0.3.0.0.apm">
+    <version name="4.0.3.0.1" url="http://openacs.org/repository/download/apm/intranet-cust-kolibri-4.0.3.0.1.apm">
         <owner url="mailto:malte.sussdorff@cognovis.de">Malte Sussdorff</owner>
         <maturity>0</maturity>
 
-        <provides url="intranet-cust-kolibri" version="4.0.3.0.0"/>
+        <provides url="intranet-cust-kolibri" version="4.0.3.0.1"/>
 
         <callbacks>
         </callbacks>
         <parameters>
-        <!-- No version parameters -->
+            <parameter datatype="string"  min_n_values="1"  max_n_values="1"  name="ProviderBillCC"  default="jh@kolibri-kommunikation.com" description="Mail to send the provider bills in CC"/>
         </parameters>
 
     </version>
