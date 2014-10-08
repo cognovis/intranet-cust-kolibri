@@ -107,23 +107,29 @@ ad_proc -public -callback im_project_after_update -impl kolibri_purchase_order_s
               and cost_type_id in ([template::util::tcl_to_sql_list $cost_types]) and cost_status_id = 3802"]
 
         foreach cost_id $purchase_order_ids {
-	        # Double click protection or against the same cost_id
+	    # Double click protection or against the same cost_id
             # twice in the list. Therefore check the current cost_status_id if
             # it is not marked as paid
             set cost_status_id [db_string cost_status_id "select cost_status_id from im_costs where cost_id = :cost_id" -default ""]
             if {3802 == $cost_status_id} {
-                # Check if we have a provider bill attached to it
+		db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_paid] where cost_id = $cost_id"
+                
+		# Check if we have a provider bill attached to it
                 # Add this as a potential later change
-                set invoice_id [im_invoice_copy_new -source_invoice_ids $cost_id -target_cost_type_id 3704]
+            
+		set linked_invoice_ids [relation::get_objects -object_id_two $invoice_id -rel_type "im_invoice_invoice_rel"]
+		set linked_invoice_ids [concat [relation::get_objects -object_id_one $invoice_id -rel_type "im_invoice_invoice_rel"] $linked_invoice_ids]
 		
-                # Update the purchase order to status paid
-                db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_paid] where cost_id = $cost_id"
-		
-		set cc_addr [parameter::get_from_package_key -package_key "intranet-cust-kolibri" -parameter "ProviderBillCC"]
-		im_invoice_send_invoice_mail -from_addr ts@kolibri-kommunikation.com -cc_addr $cc_addr -invoice_id $invoice_id
+		if {$linked_invoice_ids eq ""} {
+		    # Update the purchase order to status paid
+		    set invoice_id [im_invoice_copy_new -source_invoice_ids $cost_id -target_cost_type_id 3704]
+		    set cc_addr [parameter::get_from_package_key -package_key "intranet-cust-kolibri" -parameter "ProviderBillCC"]
 
-		# Update the provider bill to status outstanding
-		db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_outstanding] where cost_id = $invoice_id"	
+		    im_invoice_send_invoice_mail -from_addr ts@kolibri-kommunikation.com -cc_addr $cc_addr -invoice_id $invoice_id
+
+		    # Update the provider bill to status outstanding
+		    db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_outstanding] where cost_id = $invoice_id"
+		}
 	    }
 	}
     }
