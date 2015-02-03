@@ -106,6 +106,7 @@ ad_proc -public -callback im_project_after_update -impl kolibri_purchase_order_s
               where c.cost_id = ar.object_id_two and ar.object_id_one = :object_id
               and cost_type_id in ([template::util::tcl_to_sql_list $cost_types]) and cost_status_id = 3802"]
 
+	ns_log Notice "PURHCASE::: $purchase_order_ids"
         foreach cost_id $purchase_order_ids {
 	    # Double click protection or against the same cost_id
             # twice in the list. Therefore check the current cost_status_id if
@@ -117,10 +118,10 @@ ad_proc -public -callback im_project_after_update -impl kolibri_purchase_order_s
 		# Check if we have a provider bill attached to it
                 # Add this as a potential later change
             
-		set linked_invoice_ids [relation::get_objects -object_id_two $invoice_id -rel_type "im_invoice_invoice_rel"]
-		set linked_invoice_ids [concat [relation::get_objects -object_id_one $invoice_id -rel_type "im_invoice_invoice_rel"] $linked_invoice_ids]
+		#set linked_invoice_ids [relation::get_objects -object_id_two $invoice_id -rel_type "im_invoice_invoice_rel"]
+		#set linked_invoice_ids [concat [relation::get_objects -object_id_one $invoice_id -rel_type "im_invoice_invoice_rel"] $linked_invoice_ids]
 		
-		if {$linked_invoice_ids eq ""} {
+		#if {$linked_invoice_ids eq ""} {
 		    # Update the purchase order to status paid
 		    set invoice_id [im_invoice_copy_new -source_invoice_ids $cost_id -target_cost_type_id 3704]
 		    set cc_addr [parameter::get_from_package_key -package_key "intranet-cust-kolibri" -parameter "ProviderBillCC"]
@@ -129,7 +130,7 @@ ad_proc -public -callback im_project_after_update -impl kolibri_purchase_order_s
 
 		    # Update the provider bill to status outstanding
 		    db_dml update_invoice "update im_costs set cost_status_id = [im_cost_status_outstanding] where cost_id = $invoice_id"
-		}
+		#}
 	    }
 	}
     }
