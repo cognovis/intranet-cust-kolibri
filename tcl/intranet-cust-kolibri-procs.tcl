@@ -500,3 +500,16 @@ ad_proc -public -callback im_project_on_submit -impl aaa_kolibri_check_for_logge
     }
 }
 
+ad_proc -public -callback im_project_after_create -impl aaa_kolibri_jump_to_page {
+    {-object_id:required}
+    {-status_id ""}
+    {-type_id ""}
+} {
+    Check if the project has logged hours, otherwise do not allow to close the project
+} {
+    if {[im_category_is_a $type_id [im_project_type_translation]]} {
+        set return_url [export_vars -base "/intranet/projects/view" {{project_id $object_id}}]
+        ad_returnredirect $return_url
+        ad_script_abort
+    }
+}
