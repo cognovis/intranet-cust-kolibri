@@ -433,6 +433,8 @@ ad_proc -public -callback im_invoice_after_create -impl aa_kolibri_update_cost_c
 } {
     Update the cost center of the invoice with the one from the project
 } {
+    db_1row cost_center "select p.cost_center_id,p.project_id,p.project_type_id from im_projects p,im_costs c where p.project_id = c.project_id and c.cost_id = :object_id"
+
     if {"" == $cost_center_id} {
         # We need to first update the project cost center
         set cost_center_id [kolibri_update_project_cost_center -project_id $object_id -type_id $project_type_id]
@@ -452,7 +454,7 @@ ad_proc -public -callback im_invoice_after_update -impl 00_kolibri_update_cost_c
 } {
     Update the cost center of the invoice with the one from the project
 } {
-    db_1row cost_center "select p.cost_center_id,p.project_id,p.project_type_id from im_projects p,im_costs c where p.project_id = c.project_id and c.cost_id = :object_id" -default ""]
+    db_1row cost_center "select p.cost_center_id,p.project_id,p.project_type_id from im_projects p,im_costs c where p.project_id = c.project_id and c.cost_id = :object_id"
     
     if {"" == $cost_center_id} {
         # We need to first update the project cost center
