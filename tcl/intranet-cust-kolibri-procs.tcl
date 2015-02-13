@@ -24,6 +24,37 @@ ad_library {
     @cvs-id $Id$
 }
 
+ad_proc -public kolibri_update_project_cost_center {
+    {-project_id:required}
+    {-type_id ""}
+} {
+    Update the project cost center for a project
+    
+    @return cost_center_id the project was set to
+} {
+    # get the type
+    if {$type_id eq ""} {
+        set type_id [db_string type "select project_type_id from im_projects where project_id = :project_id"]
+    }
+    
+    switch $type_id {
+        10000014 { set cost_center_id 140731 }
+        10000011 { set cost_center_id 140733 }
+        10000099 { set cost_center_id 140737 }
+        10000097 { set cost_center_id 140725 }
+        10000010 { set cost_center_id 140727 }
+        10000124 { set cost_center_id 140723 }
+        86 { set cost_center_id 140725 }
+        10000007 { set cost_center_id 12388 }
+        default { set cost_center_id 140729 }
+    }
+    
+    # Update the cost center
+    db_dml update_cost_center "update im_projects set cost_center_id = :cost_center_id where project_id = :project_id"
+    
+    return $cost_center_id
+}
+
 ad_proc -public -callback im_invoice_before_update -impl kolibri_set_vars {
     {-object_id:required}
     {-status_id ""}
@@ -147,53 +178,7 @@ ad_proc -public -callback im_project_after_update -impl kolibri_update_cost_cent
 } {
     Update the cost center when a project is saved
 } {
-    # get the type
-    if {$type_id eq ""} {
-	    set type_id [db_string type "select project_type_id from im_projects where project_id = :object_id"]
-    }
-    
-    switch $type_id {
-	    10000014 { set cost_center_id 140731 }
-        10000011 { set cost_center_id 140733 }
-        10000099 { set cost_center_id 140737 }
-        10000097 { set cost_center_id 140725 }
-        10000010 { set cost_center_id 140727 }
-        10000124 { set cost_center_id 140723 }
-        86 { set cost_center_id 140725 }
-        10000007 { set cost_center_id 12388 }
-        default { set cost_center_id 140729 }
-    }
-    
-    # Update the cost center
-    db_dml update_cost_center "update im_projects set cost_center_id = :cost_center_id where project_id = :object_id"
-}
-
-ad_proc -public -callback im_project_after_create -impl kolibri_update_cost_center {
-    {-object_id:required}
-    {-status_id ""}
-    {-type_id ""}
-} {
-    Update the cost center when a project is saved
-} {
-    # get the type
-    if {$type_id eq ""} {
-	    set type_id [db_string type "select project_type_id from im_projects where project_id = :object_id"]
-    }
-    
-    switch $type_id {
-	    10000014 { set cost_center_id 140731 }
-        10000011 { set cost_center_id 140733 }
-        10000099 { set cost_center_id 140737 }
-        10000097 { set cost_center_id 140725 }
-        10000010 { set cost_center_id 140727 }
-        10000124 { set cost_center_id 140723 }
-        86 { set cost_center_id 140725 }
-        10000007 { set cost_center_id 12388 }
-        default { set cost_center_id 140729 }
-    }
-    
-    # Update the cost center
-    db_dml update_cost_center "update im_projects set cost_center_id = :cost_center_id where project_id = :object_id"
+    kolibri_update_project_cost_center -project_id $object_id -type_id $type_id
 }
 
 ad_proc -public -callback im_company_after_update -impl kolibri_update_vat_and_tax {
@@ -448,12 +433,15 @@ ad_proc -public -callback im_invoice_after_create -impl aa_kolibri_update_cost_c
 } {
     Update the cost center of the invoice with the one from the project
 } {
-    set cost_center_id [db_string cost_center "select p.cost_center_id from im_projects p,im_costs c where p.project_id = c.project_id and c.cost_id = :object_id" -default ""]
-
-    if {"" != $cost_center_id} {
-	# Update the cost center
-	db_dml update "update im_costs set cost_center_id = :cost_center_id where cost_id = :object_id"
+    if {"" == $cost_center_id} {
+        # We need to first update the project cost center
+        set cost_center_id [kolibri_update_project_cost_center -project_id $object_id -type_id $project_type_id]
     }
+    
+    if {"" != $cost_center_id} {
+            # Update the cost center
+            db_dml update "update im_costs set cost_center_id = :cost_center_id where cost_id = :object_id"
+    } 
 }
 
 
@@ -464,14 +452,18 @@ ad_proc -public -callback im_invoice_after_update -impl 00_kolibri_update_cost_c
 } {
     Update the cost center of the invoice with the one from the project
 } {
-    # disabled
-    set cost_center_id [db_string cost_center "select p.cost_center_id from im_projects p,im_costs c where p.project_id = c.project_id and c.cost_id = :object_id" -default ""]
+    db_1row cost_center "select p.cost_center_id,p.project_id,p.project_type_id from im_projects p,im_costs c where p.project_id = c.project_id and c.cost_id = :object_id" -default ""]
+    
+    if {"" == $cost_center_id} {
+        # We need to first update the project cost center
+        set cost_center_id [kolibri_update_project_cost_center -project_id $object_id -type_id $project_type_id]
+    }
     
     if {"" != $cost_center_id} {
-	# Update the cost center
-	db_dml update "update im_costs set cost_center_id = :cost_center_id where cost_id = :object_id"
-    }
-
+        	# Update the cost center
+        	db_dml update "update im_costs set cost_center_id = :cost_center_id where cost_id = :object_id"
+    } 
+    
     # Update the modification date
     db_dml update "update acs_objects set last_modified = now() where object_id = :object_id"
 }
@@ -506,8 +498,9 @@ ad_proc -public -callback im_project_after_create -impl aaa_kolibri_jump_to_page
     {-status_id ""}
     {-type_id ""}
 } {
-    Check if the project has logged hours, otherwise do not allow to close the project
+    Even though it is a translation project jump directly to the create page and not divert over to intranet-translation
 } {
+    kolibri_update_project_cost_center -project_id $object_id -type_id $type_id
     if {[im_category_is_a $type_id [im_project_type_translation]]} {
         set return_url [export_vars -base "/intranet/projects/view" {{project_id $object_id}}]
         ad_returnredirect $return_url
