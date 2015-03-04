@@ -485,7 +485,7 @@ ad_proc -public -callback im_project_on_submit -impl aaa_kolibri_check_for_logge
     set closed_ids [im_sub_categories 81]
     if {[lsearch $closed_ids $status_id]>-1} {
         # Check that we have logged hours
-        set logged_hours_p [db_string logged_hours "select 1 from im_hours where project_id = :object_id limit 1" -default 0]
+        set logged_hours_p [db_string logged_hours "select 1 from im_hours where project_id in (select project_id from im_projects where parent_id = :object_id union select :object_id from dual) limit 1" -default 0]
 
         ns_log Notice "Logger. $logged_hours_p"
         if {!$logged_hours_p} {
