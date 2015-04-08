@@ -37,18 +37,21 @@ ad_proc -public kolibri_update_project_cost_center {
         set type_id [db_string type "select project_type_id from im_projects where project_id = :project_id"]
     }
     
-    switch $type_id {
-        10000014 { set cost_center_id 140731 }
-        10000011 { set cost_center_id 140733 }
-        10000099 { set cost_center_id 140737 }
-        10000097 { set cost_center_id 140725 }
-        10000010 { set cost_center_id 140727 }
-        10000124 { set cost_center_id 140723 }
-        86 { set cost_center_id 140725 }
-        10000007 { set cost_center_id 12388 }
-        default { set cost_center_id 140729 }
+    set cost_center_id [db_string cost_center "select aux_int2 as cost_center_id from im_categories where category_id = :type_id" -default ""]
+    if {"" eq $cost_center_id} {
+        # Backwards compatability
+        switch $type_id {
+            10000014 { set cost_center_id 140731 }
+            10000011 { set cost_center_id 140733 }
+            10000099 { set cost_center_id 140737 }
+            10000097 { set cost_center_id 140725 }
+            10000010 { set cost_center_id 140727 }
+            10000124 { set cost_center_id 140723 }
+            86 { set cost_center_id 140725 }
+            10000007 { set cost_center_id 12388 }
+            default { set cost_center_id 140729 }
+        }
     }
-    
     # Update the cost center
     db_dml update_cost_center "update im_projects set cost_center_id = :cost_center_id where project_id = :project_id"
     
