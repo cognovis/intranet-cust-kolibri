@@ -79,11 +79,11 @@ ad_proc -public -callback im_invoice_before_update -impl kolibri_set_vars {
 
     set project_id [db_string project_id "select project_id from im_costs where cost_id = :object_id" -default ""]
     if {"" != $project_id} {
-	if {[db_0or1row quote_information "select company_project_nr,cost_name, effective_date, end_date from im_costs c, im_projects p where p.project_id = :project_id and p.project_id = c.project_id and cost_type_id = 3702 order by effective_date desc limit 1"]} {
-	    set quote_no $cost_name
-	    set quote_date [lc_time_fmt $effective_date %q]
-	    set delivery2_date [lc_time_fmt $end_date "%q"]
-	}
+        	if {[db_0or1row quote_information "select company_project_nr,cost_name, effective_date, end_date from im_costs c, im_projects p where p.project_id = :project_id and p.project_id = c.project_id and cost_type_id = 3702 order by effective_date desc limit 1"]} {
+        	    set quote_no $cost_name
+        	    set quote_date [lc_time_fmt $effective_date %q]
+        	    set delivery2_date [lc_time_fmt $end_date "%q"]
+        	}
     }
 } 
 
@@ -537,4 +537,51 @@ ad_proc kolibri_trans_project_component {
 
     return $result
 
+}
+
+
+# Prozedur zum automatischen Hinzufügen einer Rabatt Zeile für die Differenz zwischen Trados Matrix und Gesamtzahl
+# Überschreiben der Quote Generation, so dass die Einheiten sich auf die Wortzahl der Datei beziehen, nicht auf das von Trados ermittelte Ergebnis.
+# Hoffentlich wird das nicht übel werden......
+ 
+ad_proc -public -callback im_invoice_before_update -impl aaa_kolibri_offer {
+    {-object_id:required}
+    {-type_id ""}
+} {
+    If this is an offer, set the valid until date and get the version number of the offer
+} {
+    if {[im_category_is_a $type_id [im_cost_type_quote]]} {        
+        # Deal with the valid until
+        upvar 2 valid_until_pretty valid_until_pretty
+        upvar 2 locale locale
+        set valid_until [db_string valid_until "select effective_date + interval '1 month' from im_costs where cost_id = :object_id" -default ""]
+        set valid_until_pretty [lc_time_fmt $valid_until "%x" $locale]
+        
+        # Take a look at the version number
+        upvar 2 offer_nr offer_nr
+        
+        db_1row invoice_info "select invoice_nr from im_invoices where invoice_id = :object_id"
+        set invoice_item_id [content::item::get_id_by_name -name "${invoice_nr}.pdf" -parent_id $object_id]
+
+        set offer_nr [db_string offers "select count(*) from cr_revisions where item_id = :invoice_item_id" -default 1]
+        
+        # Set the title of the offer
+        upvar 2 offer_name offer_name
+        
+        db_1row project_info "select * from acs_rels r,
+	            im_projects p
+	        where
+	            r.object_id_one = p.project_id
+	                and r.object_id_two = :object_id limit 1"
+	                
+	    set offer_name "${project_name}, [im_category_from_id $source_language_id] -> "
+	    set target_langs [list]
+        db_foreach target_lang "select im_category_from_id(language_id) as target_language from im_target_languages where project_id = :project_id order by im_category_from_id(language_id)" {
+            lappend target_langs "$target_language"
+        } 
+        append offer_name "[join $target_langs ", "]"
+        
+        # Dienstleistung (aus Material bzw. Projekt)
+        return 1
+    }
 }
