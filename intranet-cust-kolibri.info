@@ -9,11 +9,11 @@
     <implements-subsite-p>f</implements-subsite-p>
     <inherit-templates-p>f</inherit-templates-p>
     
-    <version name="4.0.3.0.4" url="http://openacs.org/repository/download/apm/intranet-cust-kolibri-4.0.3.0.4.apm">
+    <version name="4.0.3.0.5" url="http://openacs.org/repository/download/apm/intranet-cust-kolibri-4.0.3.0.5.apm">
         <owner url="mailto:malte.sussdorff@cognovis.de">Malte Sussdorff</owner>
         <maturity>0</maturity>
         
-        <provides url="intranet-cust-kolibri" version="4.0.3.0.4"/>
+        <provides url="intranet-cust-kolibri" version="4.0.3.0.5"/>
         <callbacks>
         </callbacks>
         <parameters>
