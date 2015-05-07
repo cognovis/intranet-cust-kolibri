@@ -574,7 +574,7 @@ ad_proc -public -callback im_invoice_before_update -impl aaa_kolibri_offer {
 	            r.object_id_one = p.project_id
 	                and r.object_id_two = :object_id limit 1"
 	                
-	    set offer_name "${project_name}, [im_category_from_id $source_language_id] -> "
+	    set offer_name "${project_name}, [im_category_from_id $source_language_id] - "
 	    set target_langs [list]
         db_foreach target_lang "select im_category_from_id(language_id) as target_language from im_target_languages where project_id = :project_id order by im_category_from_id(language_id)" {
             lappend target_langs "$target_language"
@@ -582,6 +582,10 @@ ad_proc -public -callback im_invoice_before_update -impl aaa_kolibri_offer {
         append offer_name "[join $target_langs ", "]"
         
         # Dienstleistung (aus Material bzw. Projekt)
+
+	upvar 2 subject_area subject_area
+	set subject_area [im_category_from_id $subject_area_id]
+
         return 1
     }
 }
